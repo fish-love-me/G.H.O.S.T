@@ -1,8 +1,8 @@
 import openai
 import json
 import os
+import simpleaudio as sa
 from pydub import AudioSegment
-from pydub.playback import play
 
 def speak(text: str, voice="nova"):
     with open("config.json", "r") as f:
@@ -19,10 +19,18 @@ def speak(text: str, voice="nova"):
     )
 
     os.makedirs("audio", exist_ok=True)
-    output_path = "audio/response.mp3"
+    mp3_path = "audio/response.mp3"
+    wav_path = "audio/response.wav"
 
-    with open(output_path, "wb") as f:
+    # Save mp3
+    with open(mp3_path, "wb") as f:
         f.write(response.content)
 
-    sound = AudioSegment.from_file(output_path, format="mp3")
-    play(sound)
+    # Convert to wav
+    sound = AudioSegment.from_file(mp3_path, format="mp3")
+    sound.export(wav_path, format="wav")
+
+    # Play with simpleaudio (safe)
+    wave_obj = sa.WaveObject.from_wave_file(wav_path)
+    play_obj = wave_obj.play()
+    play_obj.wait_done()
