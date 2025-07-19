@@ -1,18 +1,17 @@
-# ghost/main.py
-
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import json
 import struct
 import pvporcupine
 import pyaudio
 
-from modules.input_audio    import record_audio
-from modules.transcribe     import transcribe_audio
-from modules.gpt_engine     import get_intent
-from modules.action_executor import execute_intent
+from modules.input_audio import record_audio
+from modules.transcribe import transcribe_audio
+from modules.task_classifier import classify_task
+from modules.task_router import route_task
 
 def wait_for_wake_word():
-    # מצא את השורש של הפרויקט
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     cfg_path = os.path.join(root, "config.json")
     ppn_path = os.path.join(root, "wake_words", "hey-ghost_en_windows_v3_0_0.ppn")
@@ -49,9 +48,12 @@ def main():
     record_audio()
     text = transcribe_audio()
     print("🗣 You said:", text)
-    intent = get_intent(text)
-    print("🧾 Intent:", intent)
-    execute_intent(intent)
+
+    task_type = classify_task(text)
+    print(f"🔎 Detected task type: {task_type}")
+
+    response = route_task(task_type, text)
+    print("🤖 G.H.O.S.T:", response)
 
 if __name__ == "__main__":
     main()
