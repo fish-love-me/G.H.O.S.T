@@ -47,7 +47,7 @@ Only return JSON. If the intent is unclear, return:
 {"action": "unknown", "target": "", "args": {}}
 """
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4.1-nano",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text}

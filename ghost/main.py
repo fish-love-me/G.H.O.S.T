@@ -1,12 +1,13 @@
 import sys
 import os
+import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import json
 import struct
 import pvporcupine
 import pyaudio
 
-from modules.input_audio import record_audio
+from modules.voice_detect import wait_for_voice as record_voice_until_silence
 from modules.transcribe import transcribe_audio
 from modules.task_classifier import classify_task
 from modules.task_router import route_task
@@ -44,16 +45,51 @@ def wait_for_wake_word():
         porcupine.delete()
 
 def main():
-    wait_for_wake_word()
-    record_audio()
-    text = transcribe_audio()
-    print("🗣 You said:", text)
+    flask_path = os.path.join(os.path.dirname(__file__), "remote_interface", "app.py")
+    subprocess.Popen([sys.executable, flask_path])
 
-    task_type = classify_task(text)
-    print(f"🔎 Detected task type: {task_type}")
+    from ghost.modules.handlers.conversation_handler import handle_streaming
+    from modules.speak import stream_and_speak
 
-    response = route_task(task_type, text)
-    print("🤖 G.H.O.S.T:", response)
+    while True:
+        wait_for_wake_word()
+        audio_path = record_voice_until_silence()
+        if not audio_path:
+            continue  # מתעלם אם לא זוהה דיבור
+
+        text = transcribe_audio(audio_path)
+        print("🗣 You said:", text)
+
+        task_type = classify_task(text)
+        print(f"🔎 Detected task type: {task_type}")
+
+        if task_type in ["conversation", "question"]:
+            stream_and_speak(text, handler=handle_streaming)
+
+            while True:
+                audio_path = record_voice_until_silence()
+                if not audio_path:
+                    continue
+
+                text = transcribe_audio(audio_path)
+                print("🗣 You said:", text)
+
+                if any(x in text.lower() for x in ["סיימתי", "נגמר", "זהו", "תודה"]):
+                    print("👋 יציאה מהשיחה. חוזר להאזין ל־Hey Ghost.")
+                    break
+
+                task_type = classify_task(text)
+                print(f"🔎 Detected task type: {task_type}")
+
+                if task_type in ["conversation", "question"]:
+                    stream_and_speak(text, handler=handle_streaming)
+                else:
+                    response = route_task(task_type, text)
+                    print("🤖 G.H.O.S.T:", response)
+                    break
+        else:
+            response = route_task(task_type, text)
+            print("🤖 G.H.O.S.T:", response)
 
 if __name__ == "__main__":
     main()
