@@ -4,8 +4,8 @@ import wave
 import audioop
 import time
 
-THRESHOLD = 800  # עוצמת קול שנספר כדיבור – תכוון לפי הצורך
-SILENCE_TIMEOUT = 2.0  # כמה שניות של שקט לפני שמפסיקים הקלטה
+THRESHOLD = 1000  # עוצמת קול שנספר כדיבור – תכוון לפי הצורך
+SILENCE_TIMEOUT = 1.4  # כמה שניות של שקט לפני שמפסיקים הקלטה
 
 def wait_for_voice(filename="audio/input.wav", timeout=10):
     pa = pyaudio.PyAudio()
@@ -15,7 +15,7 @@ def wait_for_voice(filename="audio/input.wav", timeout=10):
                      input=True,
                      frames_per_buffer=1024)
 
-    print("🎙 מחכה שתתחיל לדבר...")
+    print("'waiting for you to start speaking...'", end="", flush=True)
 
     frames = []
     start_time = time.time()
@@ -28,7 +28,7 @@ def wait_for_voice(filename="audio/input.wav", timeout=10):
 
         if rms > THRESHOLD:
             if not recording:
-                print("🎙 זוהה דיבור. מקליט...")
+                print("voice detected! recording...")
                 recording = True
             frames.append(data)
             silence_start = None
@@ -38,7 +38,7 @@ def wait_for_voice(filename="audio/input.wav", timeout=10):
             if silence_start is None:
                 silence_start = time.time()
             elif time.time() - silence_start > SILENCE_TIMEOUT:
-                print("🛑 דיבור נפסק. מסיים הקלטה.")
+                print("speaking stopped.")
                 break
 
         elif time.time() - start_time > timeout:
@@ -50,7 +50,7 @@ def wait_for_voice(filename="audio/input.wav", timeout=10):
 
     # 🛡 הגנה על מקרי קצה — לא לשלוח קובץ ריק
     if not frames or len(frames) < 5:
-        print("❌ לא זוהה דיבור משמעותי. מתעלם.")
+        print("ignoring empty recording.")
         return None
 
     wave_dir = os.path.dirname(filename)

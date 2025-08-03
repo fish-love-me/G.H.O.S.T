@@ -12,9 +12,14 @@ conversation = []
 
 def run():
     while True:
-        wait_for_voice()  # waits until voice detected
-        audio_path = "audio/input.wav"  # recorded file
+        audio_path = wait_for_voice()
+        if not audio_path:
+            continue        # skip empty or noise
+          
         user_text = transcribe_audio(audio_path)
+        if not user_text:   
+            continue        # skip empty transcript
+
         print(f"👤 {user_text}")
 
         response_text = ""
@@ -23,6 +28,7 @@ def run():
             response_text += chunk
 
         speak(response_text)
+
 
 if __name__ == "__main__":
     run()

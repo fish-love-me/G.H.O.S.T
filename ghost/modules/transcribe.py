@@ -1,6 +1,6 @@
-import openai
 import json
 import os
+from ghost.modules.openai_client import client
 
 def transcribe_audio(file_path="audio/input.wav"):
     if not os.path.exists(file_path) or os.path.getsize(file_path) < 100:
@@ -9,8 +9,6 @@ def transcribe_audio(file_path="audio/input.wav"):
 
     with open("config.json", "r") as f:
         config = json.load(f)
-
-    client = openai.OpenAI(api_key=config["openai_api_key"])
 
     print("🧠 Transcribing (forced Hebrew)...")
 
