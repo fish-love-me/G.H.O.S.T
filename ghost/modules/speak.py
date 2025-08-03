@@ -4,7 +4,6 @@ import os
 import simpleaudio as sa
 from pydub import AudioSegment
 from threading import Thread
-import time
 
 def speak(text: str, voice="nova"):
     with open("config.json", "r") as f:
@@ -37,23 +36,26 @@ def speak(text: str, voice="nova"):
     play_obj = wave_obj.play()
     play_obj.wait_done()
 
-def stream_and_speak(text: str, handler):
-    from modules.speak import speak  # ייבוא פנימי כדי לא ליצור לולאה
+def stream_and_speak(text: str):
     buffer = ""
     thread = None
 
-    for part in handler(text):
+    def fake_stream(text):
+        for char in text:
+            yield char
+
+    for part in fake_stream(text):
         print(part, end="", flush=True)
         buffer += part
 
-        if part in [".", "!", "?"]:  # סיום משפט
+        if part in [".", "!", "?"]:
             if thread and thread.is_alive():
                 thread.join()
             thread = Thread(target=speak, args=(buffer.strip(),))
             thread.start()
             buffer = ""
 
-    if buffer.strip():  # החלק האחרון אם לא נגמר בנקודה
+    if buffer.strip():
         if thread and thread.is_alive():
             thread.join()
         speak(buffer.strip())
