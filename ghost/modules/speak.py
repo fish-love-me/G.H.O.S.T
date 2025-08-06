@@ -1,35 +1,46 @@
 import os
-import pygame
 import time
+import pygame
 
-from ghost.modules.openai_client import client
+from ghost.modules.openai_client import config  
 
-def speak(text: str, voice="onyx"):
-    print("🔊 Speaking...")
+client = config.client
+model_tts = config.get("model_tts", "tts-1")
+default_voice = config.get("default_voice", "nova")
 
-    response = client.audio.speech.create(
-        model="gpt-4o-mini-tts",
-        voice=voice,
-        input=text,
-        response_format="wav"
-    )
+def speak(text: str, voice: str = None):
+    voice = voice or default_voice
+    print(f"🔊 Speaking with voice: {voice}")
+
+    try:
+        response = client.audio.speech.create(
+            model=model_tts,
+            voice=voice,
+            input=text,
+            response_format="wav"
+        )
+    except Exception as e:
+        print(f"❌ TTS generation failed: {e}")
+        return
 
     os.makedirs("audio", exist_ok=True)
-
     timestamp = int(time.time() * 1000)
     wav_path = f"audio/response_{timestamp}.wav"
 
-    with open(wav_path, "wb") as f:
-        f.write(response.content)
+    try:
+        with open(wav_path, "wb") as f:
+            f.write(response.content)
 
-    pygame.mixer.init()
-    pygame.mixer.music.load(wav_path)
-    pygame.mixer.music.play()
+        pygame.mixer.init()
+        pygame.mixer.music.load(wav_path)
+        pygame.mixer.music.play()
 
-    # ✅ נמתין עד שהנגינה תסתיים
-    while pygame.mixer.music.get_busy():
-        pygame.time.Clock().tick(10)
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)
 
-    # ✅ נוודא שסיים לנגן לפני שנמחק
-    pygame.mixer.music.unload()  # חובה לפני מחיקה ב-Windows
-    os.remove(wav_path)
+        pygame.mixer.music.unload()
+        os.remove(wav_path)
+        print("✅ Finished speaking.")
+
+    except Exception as e:
+        print(f"❌ Audio playback failed: {e}")
